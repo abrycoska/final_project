@@ -1,0 +1,17 @@
+QPushButton#greenButton, QPushButton#goButton {
+    background-color: #2ecc71;
+    color: white;
+    height: 60px;
+    border-radius: 10px;
+    font-weight: bold;
+    min-width: 60px;
+    height: 40px;
+}
+
+QPushButton#greenButton, QPushButton#goButton:hover {
+    background-color: #27ae60;
+}
+
+QPushButton#greenButton {
+    min-width: 300px;
+}

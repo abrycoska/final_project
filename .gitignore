@@ -1,0 +1,17 @@
+# Тимчасові файли Python / IDE
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.ipynb_checkpoints/
+
+# IDE
+.idea/
+
+# Віртуальне середовище
+.venv/
+env/
+
+
+
+
