@@ -4,19 +4,19 @@ import socketio
 from main_interface.elements.done_elements import mainContainer, shadowedLabel, topContainer, horLine
 
 
-
 class MeetTeacher(QMainWindow):
     code_receiver = pyqtSignal(str)
-    def __init__(self, prev_page):
+    def __init__(self, prev_page, sio):
         # prev: choice window
         super().__init__()
+        self.sio = sio
         self.current_ids = None
         self.code_receiver.connect(self.handle_received_code)
 
         #створюємо socket io
-        self.sio = socketio.Client()
+        # self.sio = socketio.Client()
         self.sio.on('personal_code_generated', self.meet_code_generated)
-        self.sio.connect("http://localhost:5000", transports=["websocket"])
+        # self.sio.connect("http://localhost:5000", transports=["websocket"])
 
         self.buildUI(prev_page)
 

@@ -3,7 +3,7 @@ from main_interface.elements.done_elements import *
 
 class EnterCode(QMainWindow):
 
-    def __init__(self, prev_page, next_page):
+    def __init__(self, prev_page, next_page, sio):
         #prev: choice window    next : student meet
         super().__init__()
         self.buildUI(prev_page, next_page)
@@ -44,7 +44,7 @@ class EnterCode(QMainWindow):
         self.setCentralWidget(central)
 
 class MeetStudent(QMainWindow):
-    def __init__(self, prev_page):
+    def __init__(self, prev_page, sio):
         # prev: choice window
         super().__init__()
 

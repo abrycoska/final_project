@@ -1,20 +1,20 @@
+from typing import Optional
 from PyQt5.QtWidgets import (QPushButton, QApplication, QMainWindow,
                              QTableWidget, QTableWidgetItem, QVBoxLayout,
                              QHBoxLayout, QWidget, QStackedWidget)
 import sys
 import requests
+import socketio
+from main_interface.elements.done_elements import changeWindowButton
 
 class ChoiceWindow(QMainWindow):
-    def __init__(self,switch_to_ShowCode, switch_to_EnterCode):
+    def __init__(self,switch_to_MeetTeacher, switch_to_EnterCode):
         super().__init__()
-
         layout = QHBoxLayout()
         buttons_layout = QVBoxLayout()
 
-        btn1 = QPushButton("Я викладач"); btn2 = QPushButton("Я учень")
-        btn1.setObjectName("greenButton"); btn2.setObjectName("greenButton")
-        btn1.clicked.connect(switch_to_ShowCode)
-        btn2.clicked.connect(switch_to_EnterCode)
+        btn1 = changeWindowButton(switch_to_MeetTeacher, text_input="Я вчитель", width=300)
+        btn2 = changeWindowButton(switch_to_EnterCode, text_input="Я учень", width=300)
 
         buttons_layout.addWidget(btn1)
         buttons_layout.addWidget(btn2)
@@ -35,42 +35,50 @@ class ChoiceWindow(QMainWindow):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.sio = socketio.Client()
+        self.sio.connect("http://localhost:5000", transports=["websocket"])
         self.setGeometry(200, 300, 800, 600)
         self.stack = QStackedWidget()
 
         # Дві сторінки, передаємо функцію перемикання
         self.page_choice = ChoiceWindow(self.switch_to_MeetTeacher, self.switch_to_EnterCode)
-        self.page_teacher = None
-        self.page_enterCode = None
-        self.page_student = None
+        self.pages: dict[str, Optional[QWidget]] = {
+                    'teacher' : None,
+                    'enterCode' : None,
+                    'student' : None}
 
         self.stack.addWidget(self.page_choice)
         self.setCentralWidget(self.stack)
 
+    def clean_windows(self):
+        for name, page in self.pages.items():
+            if page is not None:
+                self.stack.removeWidget(page)
+                page.deleteLater()
+                self.pages[name] = None
 
     def switch_to_ChoiceWindow(self):
         self.stack.setCurrentWidget(self.page_choice)
 
     def switch_to_MeetTeacher(self):
-        if not self.page_teacher:
-            from teacher.interface import MeetTeacher
-            self.page_teacher = MeetTeacher(self.switch_to_ChoiceWindow)
-            self.stack.addWidget(self.page_teacher)
-        self.stack.setCurrentWidget(self.page_teacher)
+        self.clean_windows()
+        from teacher.interface import MeetTeacher
+        self.pages['teacher'] = MeetTeacher(self.switch_to_ChoiceWindow, sio=self.sio)
+        self.stack.addWidget(self.pages['teacher'])
+        self.stack.setCurrentWidget(self.pages['teacher'])
 
     def switch_to_EnterCode(self):
-        if not self.page_enterCode:
-            from student.interface import EnterCode
-            self.page_enterCode =  EnterCode(self.switch_to_ChoiceWindow, self.switch_to_MeetStudent)
-            self.stack.addWidget(self.page_enterCode)
-        self.stack.setCurrentWidget(self.page_enterCode)
+        from student.interface import EnterCode
+        self.pages['enterCode'] =  EnterCode(self.switch_to_ChoiceWindow, self.switch_to_MeetStudent, sio=self.sio)
+        self.stack.addWidget(self.pages['enterCode'])
+        self.stack.setCurrentWidget(self.pages['enterCode'])
 
     def switch_to_MeetStudent(self):
-        if not self.page_student:
-            from student.interface import MeetStudent
-            self.page_student = MeetStudent(self.switch_to_EnterCode)
-            self.stack.addWidget(self.page_student)
-        self.stack.setCurrentWidget(self.page_student)
+        self.clean_windows()
+        from student.interface import MeetStudent
+        self.pages['student'] = MeetStudent(self.switch_to_EnterCode, sio=self.sio)
+        self.stack.addWidget(self.pages['student'])
+        self.stack.setCurrentWidget(self.pages['student'])
 
 
 if __name__ == "__main__":
