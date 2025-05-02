@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.page_choice)
         self.setCentralWidget(self.stack)
 
-        self.sio.on('personal_id_generated', self.meet_code_generated)
+        self.sio.on('personal_id_generated', self.personal_code_generated)
         self.sio.emit('gen_personal_id')
 
     def personal_code_generated(self, data):
