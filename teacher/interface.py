@@ -1,6 +1,5 @@
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal
-import socketio
 from main_interface.elements.done_elements import mainContainer, shadowedLabel, topContainer, horLine
 
 
@@ -10,10 +9,10 @@ class MeetTeacher(QMainWindow):
         # prev: choice window
         super().__init__()
         self.sio = sio
-        self.id = id
+        self.ids = id
+        sio.on("new_meet_ids", self.on_new_meet_ids)
+        sio.emit("register_new_meet")
         self.current_ids = None
-        self.code_receiver.connect(self.handle_received_code)
-        # self.sio.on('personal_code_generated', self.meet_code_generated)
 
         self.buildUI(prev_page)
 
@@ -27,27 +26,14 @@ class MeetTeacher(QMainWindow):
         self.outer_layout.addWidget(line)
         self.outer_layout.addWidget(self.main)
 
+        msg = f"Meet code: {self.ids['id']}\tMeet passwd: {self.ids['meet_password']}"
+        self.current_ids = shadowedLabel(msg)
+        self.top.layout().addWidget(self.current_ids)
+
         central = QWidget()
         central.setLayout(self.outer_layout)
         self.setCentralWidget(central)
 
-    def meet_code_generated(self, data):
-        code = data['code']
-        self.code_receiver.emit(code)
-    def handle_received_code(self, code):
-        if self.current_ids is not None:
-            self.top.layout().removeWidget(self.current_ids)
-            self.current_ids.deleteLater()
-            self.current_ids = None
-        msg = f"Meet code: {code}"
-        self.current_ids = shadowedLabel(msg)
-        self.top.layout().addWidget(self.current_ids)
-
-    def showEvent(self, event):
-        # кожного разу, коли вікно показують,
-        # просимо новий код у сервера
-        super().showEvent(event)
-        self.sio.emit('register_new_meet', {'id' : self.id})
-
-
+    def on_new_meet_ids(self, new_meet_ids):
+        self.current_ids = new_meet_ids
 
