@@ -3,9 +3,10 @@ from main_interface.elements.done_elements import *
 
 class EnterCode(QMainWindow):
 
-    def __init__(self, prev_page, next_page, sio):
+    def __init__(self, prev_page, next_page, sio, id):
         #prev: choice window    next : student meet
         super().__init__()
+        self.id = id
         self.buildUI(prev_page, next_page)
 
     def buildUI(self, prev_page, next_page):
@@ -44,10 +45,10 @@ class EnterCode(QMainWindow):
         self.setCentralWidget(central)
 
 class MeetStudent(QMainWindow):
-    def __init__(self, prev_page, sio):
+    def __init__(self, prev_page, sio, id):
         # prev: choice window
         super().__init__()
-
+        self.id = id
 
         outer_layout = QVBoxLayout()
         main_container = mainContainer()

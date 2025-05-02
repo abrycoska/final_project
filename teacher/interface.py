@@ -6,17 +6,14 @@ from main_interface.elements.done_elements import mainContainer, shadowedLabel, 
 
 class MeetTeacher(QMainWindow):
     code_receiver = pyqtSignal(str)
-    def __init__(self, prev_page, sio):
+    def __init__(self, prev_page, sio, id):
         # prev: choice window
         super().__init__()
         self.sio = sio
+        self.id = id
         self.current_ids = None
         self.code_receiver.connect(self.handle_received_code)
-
-        #створюємо socket io
-        # self.sio = socketio.Client()
-        self.sio.on('personal_code_generated', self.meet_code_generated)
-        # self.sio.connect("http://localhost:5000", transports=["websocket"])
+        # self.sio.on('personal_code_generated', self.meet_code_generated)
 
         self.buildUI(prev_page)
 
@@ -50,7 +47,7 @@ class MeetTeacher(QMainWindow):
         # кожного разу, коли вікно показують,
         # просимо новий код у сервера
         super().showEvent(event)
-        self.sio.emit('gen_personal_code')
+        self.sio.emit('register_new_meet', {'id' : self.id})
 
 
 

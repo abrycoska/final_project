@@ -7,6 +7,8 @@ import requests
 import socketio
 from main_interface.elements.done_elements import changeWindowButton
 
+server_url = "https://final-project-0ugb.onrender.com"
+# server_url = "http://localhost:5000"
 class ChoiceWindow(QMainWindow):
     def __init__(self,switch_to_MeetTeacher, switch_to_EnterCode):
         super().__init__()
@@ -36,7 +38,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.sio = socketio.Client()
-        self.sio.connect("http://localhost:5000", transports=["websocket"])
+        self.sio.connect(server_url, transports=["websocket"])
         self.setGeometry(200, 300, 800, 600)
         self.stack = QStackedWidget()
 
@@ -49,6 +51,13 @@ class MainWindow(QMainWindow):
 
         self.stack.addWidget(self.page_choice)
         self.setCentralWidget(self.stack)
+
+        self.sio.on('personal_id_generated', self.meet_code_generated)
+        self.sio.emit('gen_personal_id')
+
+    def personal_code_generated(self, data):
+        id = data['id']
+        self.id = id
 
     def clean_windows(self):
         for name, page in self.pages.items():
@@ -63,20 +72,20 @@ class MainWindow(QMainWindow):
     def switch_to_MeetTeacher(self):
         self.clean_windows()
         from teacher.interface import MeetTeacher
-        self.pages['teacher'] = MeetTeacher(self.switch_to_ChoiceWindow, sio=self.sio)
+        self.pages['teacher'] = MeetTeacher(self.switch_to_ChoiceWindow, sio=self.sio, id=self.id)
         self.stack.addWidget(self.pages['teacher'])
         self.stack.setCurrentWidget(self.pages['teacher'])
 
     def switch_to_EnterCode(self):
         from student.interface import EnterCode
-        self.pages['enterCode'] =  EnterCode(self.switch_to_ChoiceWindow, self.switch_to_MeetStudent, sio=self.sio)
+        self.pages['enterCode'] =  EnterCode(self.switch_to_ChoiceWindow, self.switch_to_MeetStudent, sio=self.sio, id=self.id)
         self.stack.addWidget(self.pages['enterCode'])
         self.stack.setCurrentWidget(self.pages['enterCode'])
 
     def switch_to_MeetStudent(self):
         self.clean_windows()
         from student.interface import MeetStudent
-        self.pages['student'] = MeetStudent(self.switch_to_EnterCode, sio=self.sio)
+        self.pages['student'] = MeetStudent(self.switch_to_EnterCode, sio=self.sio, id=self.id)
         self.stack.addWidget(self.pages['student'])
         self.stack.setCurrentWidget(self.pages['student'])
 
