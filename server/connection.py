@@ -1,7 +1,7 @@
 import json
 import random
 import os
-import datetime
+from datetime import datetime
 from flask import request
 
 # meet_code_bp = Blueprint('meet_code_bp', __name__)
