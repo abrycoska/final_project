@@ -39,6 +39,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.sio = socketio.Client()
         self.sio.connect(server_url, transports=["websocket"])
+        self.sio.on('personal_id_generated', self.personal_code_generated)
+        self.sio.emit('gen_personal_id')
+
         self.setGeometry(200, 300, 800, 600)
         self.stack = QStackedWidget()
 
@@ -48,12 +51,9 @@ class MainWindow(QMainWindow):
                     'teacher' : None,
                     'enterCode' : None,
                     'student' : None}
-
         self.stack.addWidget(self.page_choice)
         self.setCentralWidget(self.stack)
 
-        self.sio.on('personal_id_generated', self.personal_code_generated)
-        self.sio.emit('gen_personal_id')
 
     def personal_code_generated(self, data):
         id = data['id']
