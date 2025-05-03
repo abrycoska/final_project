@@ -10,7 +10,7 @@ def add_shaddow(obj):
     obj.setGraphicsEffect(shadow)
     return obj
 
-def changeWindowButton(callback_func, width=60, height=60, text_input="Go", backButton=False):
+def changeWindowButton(callback_func, width=60, height=60, text_input="Go", backButton=False, ):
     btn = QPushButton()
 
     if backButton:

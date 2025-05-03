@@ -7,8 +7,8 @@ import requests
 import socketio
 from main_interface.elements.done_elements import changeWindowButton
 
-server_url = "https://final-project-0ugb.onrender.com"
-# server_url = "http://localhost:5000"
+# server_url = "https://final-project-0ugb.onrender.com"
+server_url = "http://localhost:5000"
 class ChoiceWindow(QMainWindow):
     def __init__(self,switch_to_MeetTeacher, switch_to_EnterCode):
         super().__init__()
@@ -39,8 +39,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.sio = socketio.Client()
         self.sio.connect(server_url, transports=["websocket"])
-        self.sio.on('personal_id_generated', self.personal_id_generated)
-        self.sio.emit('gen_personal_id')
+        self.sio.emit('gen_personal_id', callback=self.personal_id_generated)
 
         self.setGeometry(200, 300, 800, 600)
         self.stack = QStackedWidget()
@@ -57,14 +56,26 @@ class MainWindow(QMainWindow):
     def personal_id_generated(self, data):
         self.ids = data
 
+    def closeEvent(self, event):
+        # перед тим як закривати головне вікно, очистимо сторінки
+        self.clean_windows()
+        # можна ще відправити якийсь лог, якщо потрібно
+        # print("Вікно закривається – відправляю leave_meet для всіх активних сторінок")
+        super().closeEvent(event)
+
     def clean_windows(self):
         for name, page in self.pages.items():
             if page is not None:
+                # викличе ф-цію, яка змусить сторінку emit про вихід з конференції
+                if hasattr(page, 'leave_meet'):
+                    page.leave_meet()
+
                 self.stack.removeWidget(page)
                 page.deleteLater()
                 self.pages[name] = None
 
     def switch_to_ChoiceWindow(self):
+        self.clean_windows()
         self.stack.setCurrentWidget(self.page_choice)
 
     def switch_to_MeetTeacher(self):
@@ -81,10 +92,10 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.pages['enterCode'])
         self.stack.setCurrentWidget(self.pages['enterCode'])
 
-    def switch_to_MeetStudent(self):
+    def switch_to_MeetStudent(self, meet_id):
         self.clean_windows()
         from student.interface import MeetStudent
-        self.pages['student'] = MeetStudent(self.switch_to_EnterCode, sio=self.sio, id=self.ids)
+        self.pages['student'] = MeetStudent(self.switch_to_EnterCode, sio=self.sio, id=self.ids, meet_id=meet_id)
         self.stack.addWidget(self.pages['student'])
         self.stack.setCurrentWidget(self.pages['student'])
 

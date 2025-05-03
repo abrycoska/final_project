@@ -10,30 +10,33 @@ class MeetTeacher(QMainWindow):
         super().__init__()
         self.sio = sio
         self.ids = id
-        sio.on("new_meet_ids", self.on_new_meet_ids)
-        sio.emit("register_new_meet")
-        self.current_ids = None
+        self.prev_page = prev_page
+        self.sio.emit("register_new_meet", self.ids)
 
-        self.buildUI(prev_page)
+        self.buildUI()
 
-    def buildUI(self, prev_page):
+    def buildUI(self):
         self.outer_layout = QVBoxLayout()
         self.main = mainContainer()
-        self.top = topContainer(prev_page)
+        self.top = topContainer(self.prev_page)
         line = horLine()
 
         self.outer_layout.addWidget(self.top)
         self.outer_layout.addWidget(line)
         self.outer_layout.addWidget(self.main)
 
-        msg = f"Meet code: {self.ids['id']}\tMeet passwd: {self.ids['meet_password']}"
-        self.current_ids = shadowedLabel(msg)
-        self.top.layout().addWidget(self.current_ids)
+        msg_code = f"Meet code: {self.ids['personal_id'][:3]} {self.ids['personal_id'][3:]}"
+        msg_pswd = f"Meet passwd: {self.ids['meet_password'][:4]} {self.ids['meet_password'][4:]}"
+        msg_label = shadowedLabel(msg_code + '\t' + msg_pswd)
+        self.top.layout().addWidget(msg_label)
 
         central = QWidget()
         central.setLayout(self.outer_layout)
         self.setCentralWidget(central)
 
-    def on_new_meet_ids(self, new_meet_ids):
-        self.current_ids = new_meet_ids
+
+    def leave_meet(self):
+        print("huy")
+        self.sio.emit("disconnect_participant", {'personal_id' : self.ids['personal_id'], "Teacher" : True})
+
 
