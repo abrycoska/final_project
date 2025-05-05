@@ -1,4 +1,6 @@
 import eventlet
+from PyQt5.uic.Compiler.qobjectcreator import logger
+
 eventlet.monkey_patch()
 
 from flask import Flask
@@ -13,6 +15,7 @@ socketio = SocketIO(app,
                     cors_allowed_origins="*",
                     async_mode='eventlet',
                     ping_interval=10,
+                    logger=True,
                     ping_timeout=5)
 connection_events(socketio)
 cleanup_func(socketio)

@@ -10,7 +10,7 @@ import asyncio
 from main_interface.elements.done_elements import changeWindowButton
 
 # server_url = "https://final-project-0ugb.onrender.com"
-server_url = "http://localhost:5000"
+server_url = "http://127.0.0.1:5000"
 class ChoiceWindow(QMainWindow):
     def __init__(self,switch_to_MeetTeacher, switch_to_EnterCode):
         super().__init__()
