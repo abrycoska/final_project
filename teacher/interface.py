@@ -9,10 +9,11 @@ class MeetTeacher(QMainWindow):
         # prev: choice window
         super().__init__()
         self.sio = sio
+        # id = {'personal_id' : ###, 'meet_password' : ###}
         self.ids = id
         self.prev_page = prev_page
-        self.sio.emit("register_new_meet", self.ids)
 
+        self.sio.emit("register_new_meet", self.ids)
         self.buildUI()
 
     def buildUI(self):
@@ -36,7 +37,6 @@ class MeetTeacher(QMainWindow):
 
 
     def leave_meet(self):
-        print("huy")
         self.sio.emit("disconnect_participant", {'personal_id' : self.ids['personal_id'], "Teacher" : True})
 
 

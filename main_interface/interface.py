@@ -1,10 +1,12 @@
 from typing import Optional
+from PyQt5.QtCore import QEventLoop
 from PyQt5.QtWidgets import (QPushButton, QApplication, QMainWindow,
                              QTableWidget, QTableWidgetItem, QVBoxLayout,
                              QHBoxLayout, QWidget, QStackedWidget)
 import sys
 import requests
 import socketio
+import asyncio
 from main_interface.elements.done_elements import changeWindowButton
 
 # server_url = "https://final-project-0ugb.onrender.com"
@@ -56,12 +58,6 @@ class MainWindow(QMainWindow):
     def personal_id_generated(self, data):
         self.ids = data
 
-    def closeEvent(self, event):
-        # перед тим як закривати головне вікно, очистимо сторінки
-        self.clean_windows()
-        # можна ще відправити якийсь лог, якщо потрібно
-        # print("Вікно закривається – відправляю leave_meet для всіх активних сторінок")
-        super().closeEvent(event)
 
     def clean_windows(self):
         for name, page in self.pages.items():
@@ -92,19 +88,28 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.pages['enterCode'])
         self.stack.setCurrentWidget(self.pages['enterCode'])
 
-    def switch_to_MeetStudent(self, meet_id):
+    def switch_to_MeetStudent(self, meet_id, name):
         self.clean_windows()
         from student.interface import MeetStudent
-        self.pages['student'] = MeetStudent(self.switch_to_EnterCode, sio=self.sio, id=self.ids, meet_id=meet_id)
+        self.pages['student'] = MeetStudent(self.switch_to_EnterCode, sio=self.sio, id=self.ids, meet_id=meet_id, name=name)
         self.stack.addWidget(self.pages['student'])
         self.stack.setCurrentWidget(self.pages['student'])
+
+    def closeEvent(self, event):
+        # коли вікно закривається – відправити leave_meet для всіх активних сторінок
+        self.clean_windows()
+        super().closeEvent(event)
 
 
 if __name__ == "__main__":
     app = QApplication([])
-    with open("main_interface/style.qss", "r") as f:
-        app.setStyleSheet(f.read())
+    # loop = QEventLoop(app)
+    # asyncio.set_event_loop(loop)
 
     window = MainWindow()
     window.show()
+
     sys.exit(app.exec_())
+    # with loop:
+    #     loop.create_task(window.start())
+    #     loop.run_forever()

@@ -8,12 +8,14 @@ class EnterCode(QMainWindow):
     def __init__(self, prev_page, next_page, sio, id):
         #switch to ->  prev: choice window  |  next : student meet
         super().__init__()
+        # id = {'personal_id' : ###, 'meet_password' : ###}
         self.personal_id = id['personal_id']
         self.sio = sio
         self.prev_page = prev_page
         self.next_page = next_page
         self.code_input = None
         self.pswd_input = None
+        self.name_input = None
         self.buildUI()
 
     def buildUI(self):
@@ -24,8 +26,10 @@ class EnterCode(QMainWindow):
                 inputs.addStretch()
                 self.code_input = lineInput(200, "Введіть код конференції")
                 self.pswd_input = lineInput(200, "Введіть пароль")
+                self.name_input = lineInput(200, "Введіть ім'я користувача")
                 inputs.addWidget(self.code_input)
                 inputs.addWidget(self.pswd_input)
+                inputs.addWidget(self.name_input)
                 inputs.addStretch()
                 inputs_widget = QWidget()
                 inputs_widget.setLayout(inputs)
@@ -66,29 +70,29 @@ class EnterCode(QMainWindow):
                       {'meet_id': meet_id, 'meet_password': pswd, 'personal_id' : self.personal_id},
                       callback=self.on_join_response)
 
+    # ф-ція, яка спрацює, коли натиснути "Go"
     def temp(self):
         meet_id = self.code_input.text().strip()
-        self.next_page(meet_id)
+        self.next_page(meet_id, self.name_input)
 
     def on_join_response(self, success=None):
         if success:
-            # перекине виконання у головний потік Qt, але ф-цію
-            # з параметром (ід конференції), щоб передати її в MeetStudent
+            # перекине виконання ф-ції з параметрами у головний потік Qt
             QTimer.singleShot(0, self.temp)
         else:
             self.pswd_input.clear()
 
 
 class MeetStudent(QMainWindow):
-    def __init__(self, prev_page, sio, id, meet_id):
+    def __init__(self, prev_page, sio, id, meet_id, name):
         # prev: choice window
         super().__init__()
+        # id = {'personal_id' : ###, 'meet_password' : ###}
         self.id = id
         self.meet_id = meet_id
-        print('meet_id', self.meet_id)
-        print('id', self.id)
+        self.name = name
         self.sio = sio
-        self.sio = sio
+
 
         outer_layout = QVBoxLayout()
         main_container = mainContainer()

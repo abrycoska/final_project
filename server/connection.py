@@ -7,7 +7,6 @@ from glob import glob
 from flask import request
 
 # meet_code_bp = Blueprint('meet_code_bp', __name__)
-
 # @meet_code_bp.route('/gen_meet_code', methods=['POST'])
 # def gen_meet_code():
 #     return '325 632', 200
@@ -16,8 +15,10 @@ from flask import request
 DIR = os.path.join(os.path.dirname(__file__), '..', 'active_meets/')
 if not os.path.exists(DIR):
     os.makedirs(DIR)
+
 # список всіх активних користувачів
 occupied_ids = set()
+
 # завантаження збереження файлу
 def load_info(path: str) -> dict:
     with open(path, 'r', encoding='utf-8') as f:
@@ -51,6 +52,8 @@ def cleanup_func(sio):
 
 
 def connection_events(sio):
+    # при створенні, відправляє id, який буде використаний як код конфи,
+    # якщо обрати вчителем
     @sio.on('gen_personal_id')
     def gen_meet_code():
         while True:
@@ -76,6 +79,10 @@ def connection_events(sio):
                       "start_time": datetime.utcnow().isoformat(),
                       "participants": {} }
             save_info(path, info)
+        else:
+            info = load_info(path)
+            info["owner_active"] = True
+            save_info(path, info)
 
     @sio.on('join_meet')
     def join_meet(supposed_ids):
@@ -100,6 +107,7 @@ def connection_events(sio):
         else:
             return False
 
+
     @sio.on('disconnect_participant')
     def disconnect_participant(actor):
 
@@ -114,4 +122,3 @@ def connection_events(sio):
             info = load_info(path)
             info["participants"].pop(actor["personal_id"], None)
             save_info(path, info)
-
