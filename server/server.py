@@ -5,7 +5,7 @@ eventlet.monkey_patch()
 
 from flask import Flask
 from flask_socketio import SocketIO
-from connection import  connection_events, cleanup_func
+from connection import  connection_management
 
 
 app = Flask(__name__)
@@ -17,8 +17,8 @@ socketio = SocketIO(app,
                     ping_interval=10,
                     logger=True,
                     ping_timeout=5)
-connection_events(socketio)
-cleanup_func(socketio)
+
+connection_management(socketio)
 
 @app.route('/')
 def index():

@@ -1,5 +1,6 @@
 from typing import Optional
-from PyQt5.QtCore import QEventLoop
+
+from qasync import QEventLoop, asyncSlot
 from PyQt5.QtWidgets import (QPushButton, QApplication, QMainWindow,
                              QTableWidget, QTableWidgetItem, QVBoxLayout,
                              QHBoxLayout, QWidget, QStackedWidget)
@@ -7,7 +8,37 @@ import sys
 import requests
 import socketio
 import asyncio
+import time
 from main_interface.elements.done_elements import changeWindowButton
+from main_interface.capturing import Vidosik
+
+
+####################### це шоб помилки виводились
+
+import sys
+import traceback
+from PyQt5.QtWidgets import QApplication, QMessageBox
+from PyQt5.QtCore import qInstallMessageHandler, QtMsgType
+
+# 1. Переозначаємо excepthook
+def exception_hook(exc_type, exc_value, exc_tb):
+    traceback.print_exception(exc_type, exc_value, exc_tb)
+    QMessageBox.critical(None, "Error", "".join(traceback.format_exception(exc_type, exc_value, exc_tb)))
+    sys.exit(1)
+sys.excepthook = exception_hook
+
+# 2. Встановлюємо Qt-логер
+def qt_message_handler(msg_type, context, message):
+    print(f"Qt ({msg_type}): {message}")
+    if msg_type == QtMsgType.QtCriticalMsg:
+        QMessageBox.critical(None, "Qt Critical", message)
+    elif msg_type == QtMsgType.QtWarningMsg:
+        QMessageBox.warning(None, "Qt Warning", message)
+qInstallMessageHandler(qt_message_handler)
+
+##########################
+
+
 
 # server_url = "https://final-project-0ugb.onrender.com"
 server_url = "http://127.0.0.1:5000"
@@ -17,8 +48,8 @@ class ChoiceWindow(QMainWindow):
         layout = QHBoxLayout()
         buttons_layout = QVBoxLayout()
 
-        btn1 = changeWindowButton(switch_to_MeetTeacher, text_input="Я вчитель", width=300)
-        btn2 = changeWindowButton(switch_to_EnterCode, text_input="Я учень", width=300)
+        btn1 = changeWindowButton(switch_to_MeetTeacher, text="Я вчитель", width=300)
+        btn2 = changeWindowButton(switch_to_EnterCode, text="Я учень", width=300)
 
         buttons_layout.addWidget(btn1)
         buttons_layout.addWidget(btn2)
@@ -39,9 +70,7 @@ class ChoiceWindow(QMainWindow):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.sio = socketio.Client()
-        self.sio.connect(server_url, transports=["websocket"])
-        self.sio.emit('gen_personal_id', callback=self.personal_id_generated)
+        self.sio = socketio.AsyncClient()
 
         self.setGeometry(200, 300, 800, 600)
         self.stack = QStackedWidget()
@@ -55,20 +84,23 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.page_choice)
         self.setCentralWidget(self.stack)
 
+    async def start(self):
+        await self.sio.connect(server_url, transports=["websocket"])
+        await self.sio.emit('gen_personal_id', callback=self.personal_id_generated)
+
     def personal_id_generated(self, data):
         self.ids = data
 
-
     def clean_windows(self):
         for name, page in self.pages.items():
-            if page is not None:
-                # викличе ф-цію, яка змусить сторінку emit про вихід з конференції
-                if hasattr(page, 'leave_meet'):
-                    page.leave_meet()
-
-                self.stack.removeWidget(page)
-                page.deleteLater()
-                self.pages[name] = None
+            if page is None: continue
+            # викличе ф-цію, яка змусить сторінку emit про вихід з конференції
+            if hasattr(page, 'leave_meet'):
+                asyncio.create_task(page.leave_meet())
+                # page.leave_meet()
+            self.stack.removeWidget(page)
+            page.deleteLater()
+            self.pages[name] = None
 
     def switch_to_ChoiceWindow(self):
         self.clean_windows()
@@ -95,21 +127,40 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.pages['student'])
         self.stack.setCurrentWidget(self.pages['student'])
 
-    def closeEvent(self, event):
+    @asyncSlot()
+    async def closeEvent(self, event):
         # коли вікно закривається – відправити leave_meet для всіх активних сторінок
-        self.clean_windows()
+        # loop = asyncio.get_event_loop()
+        for page in self.pages.values():
+            if page and hasattr(page, "leave_meet"):
+                # дочекаємося результату emit
+                await page.leave_meet()
         super().closeEvent(event)
+
+    # def closeEvent(self, event):
+    #     event.ignore()
+    #     asyncio.create_task(self.close_and_clean())
+    #
+    # async def close_and_clean(self):
+    #     # коли вікно закривається – відправити leave_meet для всіх активних сторінок
+    #     for page in self.pages.values():
+    #         if page and hasattr(page, "leave_meet"):
+    #             print('has atr')
+    #             await page.leave_meet()
+    #     QApplication.quit()
 
 
 if __name__ == "__main__":
-    app = QApplication([])
-    # loop = QEventLoop(app)
-    # asyncio.set_event_loop(loop)
+    # 1) Створюємо Qt-додаток і qasync-цикл
+    app = QApplication(sys.argv)
+    loop = QEventLoop(app)
+    asyncio.set_event_loop(loop)
 
     window = MainWindow()
     window.show()
 
-    sys.exit(app.exec_())
-    # with loop:
-    #     loop.create_task(window.start())
-    #     loop.run_forever()
+    with loop:
+        loop.create_task(window.start())
+        loop.run_forever()
+    # чистимо ресурси камери, коли закрили всі вікна
+    # # cam_manager.stop()

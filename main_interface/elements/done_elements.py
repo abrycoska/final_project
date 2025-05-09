@@ -10,7 +10,7 @@ def add_shaddow(obj):
     obj.setGraphicsEffect(shadow)
     return obj
 
-def changeWindowButton(callback_func, width=60, height=60, text_input="Go", backButton=False, ):
+def changeWindowButton(callback_func, width=60, height=60, text="Go", backButton=False, ):
     btn = QPushButton()
 
     if backButton:
@@ -18,7 +18,7 @@ def changeWindowButton(callback_func, width=60, height=60, text_input="Go", back
         btn.setFlat(True) #щоб без заднього фону і рамок
 
     else:
-        btn.setText(text_input)
+        btn.setText(text)
         btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: #2ecc71;
@@ -32,6 +32,53 @@ def changeWindowButton(callback_func, width=60, height=60, text_input="Go", back
     btn.clicked.connect(callback_func)
 
     return btn
+
+
+def MediaButton(stream_handler, width=60, height=60, text="Go"):
+    btn = QPushButton()
+
+    btn.setText(text)
+    btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: #104727;
+            color: white;
+            height: {height}px;
+            border-radius: 10px;
+            font-weight: bold;
+            min-width: {width}px;
+        }}
+    """)
+
+    def handleSwitch(sream_handler):
+        if sream_handler.running:
+            sream_handler.stop()
+            btn.setStyleSheet(f"""
+                        QPushButton {{
+                            background-color: #104727;
+                            color: white;
+                            height: {height}px;
+                            border-radius: 10px;
+                            font-weight: bold;
+                            min-width: {width}px;
+                        }}
+                    """)
+        else:
+            sream_handler.start()
+            btn.setStyleSheet(f"""
+                        QPushButton {{
+                            background-color: #2ecc71;
+                            color: white;
+                            height: {height}px;
+                            border-radius: 10px;
+                            font-weight: bold;
+                            min-width: {width}px;
+                        }}
+                    """)
+
+
+    btn.clicked.connect(lambda: handleSwitch(stream_handler))
+    return btn
+
 
 def topContainer(change_page):
     top_container = QWidget()
@@ -83,8 +130,9 @@ def lineInput(width, prompt):
     line.setPlaceholderText(prompt)
     return line
 
-def mainContainer(width=700, height=400):
+def mainContainer(width=600, height=400):
     main_container = QWidget()
+    # main_container.setStyleSheet("background-color: red;")
     main_container.setMinimumSize(width, height)
     main_layout = QHBoxLayout(main_container)
     return main_container

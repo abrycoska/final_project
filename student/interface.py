@@ -1,6 +1,9 @@
+import asyncio
+
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton
 from PyQt5.QtCore import QTimer
 from main_interface.elements.done_elements import *
+
 
 
 class EnterCode(QMainWindow):
@@ -39,7 +42,7 @@ class EnterCode(QMainWindow):
             layout_widget.setFixedWidth(320)
             layout = QHBoxLayout(layout_widget)
             layout.addWidget(inputsArea())
-            layout.addWidget(changeWindowButton(self.on_join_attempt, text_input="Go"))
+            layout.addWidget(changeWindowButton(lambda: asyncio.create_task(self.on_join_attempt()), text="Go"))
             main_container.layout().addWidget(layout_widget)
 
 
@@ -60,13 +63,13 @@ class EnterCode(QMainWindow):
     #перевіряє чи введені пароль і код конференції
     #якшо є, то відправляє на сервер запит, щоб знайти конференцію і додати туди учасника
     #переключитись на вікно к-ції (MeetStudent)
-    def on_join_attempt(self):
+    async def on_join_attempt(self):
         meet_id = self.code_input.text().strip()
         pswd = self.pswd_input.text().strip()
         print(meet_id, type(meet_id), pswd, type(pswd))
         if not (meet_id and pswd):
             return
-        self.sio.emit('join_meet',
+        await self.sio.emit('join_meet',
                       {'meet_id': meet_id, 'meet_password': pswd, 'personal_id' : self.personal_id},
                       callback=self.on_join_response)
 
@@ -81,6 +84,7 @@ class EnterCode(QMainWindow):
             QTimer.singleShot(0, self.temp)
         else:
             self.pswd_input.clear()
+
 
 
 class MeetStudent(QMainWindow):
@@ -105,8 +109,8 @@ class MeetStudent(QMainWindow):
         central.setLayout(outer_layout)
         self.setCentralWidget(central)
 
-    def leave_meet(self):
-        self.sio.emit("disconnect_participant",
+    async def leave_meet(self):
+        await self.sio.emit("disconnect_participant",
                       {"personal_id" : self.id['personal_id'],
                        "meet_id" : self.meet_id,
-                       "Teacher" : False})
+                       "role" : "Student"})
