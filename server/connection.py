@@ -1,5 +1,7 @@
 import time
 import secrets
+from aiortc import RTCPeerConnection
+from aiortc.contrib.media import MediaRelay
 
 # meet_code_bp = Blueprint('meet_code_bp', __name__)
 # @meet_code_bp.route('/gen_meet_code', methods=['POST'])
@@ -9,6 +11,8 @@ import secrets
 # папка з файлами зустрічей
 
 from server.meet_management import *
+relay = MediaRelay()
+
 
 def connection_events(sio):
     # при створенні, відправляє id, який буде використаний як код конфи,
@@ -23,7 +27,6 @@ def connection_events(sio):
         meet_password = str(secrets.randbelow(10**2)).zfill(2)
         ids: dict[str, str] = {'personal_id' : personal_id, 'meet_password' : meet_password}
         return ids
-
 
     @sio.on('register_new_meet')
     def register_new_meet(ids):
@@ -61,7 +64,6 @@ def connection_events(sio):
         meet_id = supposed_ids['meet_id']
         supposed_password = supposed_ids['meet_password']
         personal_id = supposed_ids['personal_id']
-        print('-----')
 
         if meet_id not in meetings.keys():
             return False
@@ -70,14 +72,13 @@ def connection_events(sio):
         # якщо паролі співпали, то додає
         if real_password == supposed_password:
             with lock:
-                print("+++++++")
-                print(meetings[meet_id].keys())
                 info = load_info(meetings[meet_id]['path'])
 
                 info[f"{personal_id}"] = {'emotions': [],
                                           'camera': False,
                                           'hand_raised': False}
                 save_info(meetings[meet_id]['path'], info)
+
             return True
         else:
             return False
@@ -96,6 +97,19 @@ def connection_events(sio):
                 save_info(path, info)
         meetings[meet_id]["part_num_changed_time"] = time.time()
 
+    async def on_offer(data):
+        personal_id = data['personal_id']
+        meet_id = data['meet_id']
+        pcs = meetings[meet_id]['pcs']
+
+        pc = RTCPeerConnection()
+        pcs[personal_id] = pc
+
+        @pc.on("track")
+        async def on_track(track):
+            relay_track = relay.subscribe(track)
+
+            for
 
 
 
