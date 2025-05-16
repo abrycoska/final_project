@@ -32,7 +32,7 @@ def cleanup_func(sio):
     # якщо власник не серед активних учасників та список учасників порожній
     def cleanup():
         while True:
-            for k, meet in meetings.values():
+            for k, meet in meetings:
                 try:
                     alone_time = time.time() - meetings["part_dscn_time"]
                     participant = load_info(meet['path'])

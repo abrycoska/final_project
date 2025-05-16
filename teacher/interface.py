@@ -1,13 +1,9 @@
-import asyncio, qasync, sys, cv2, numpy as np
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QSpacerItem
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QImage, QPixmap
-from main_interface.elements.done_elements import mainContainer, shadowedLabel, topContainer, horLine
-from aiortc import RTCPeerConnection, RTCSessionDescription
-from aiortc.contrib.media import MediaStreamTrack
-import socketio
-from teacher.gui_parts import MediaPanel, MediaControl
-from main_interface.capturing import Vidosik, ScreenCapture
+import asyncio
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget
+from common.elements.done_elements import mainContainer, shadowedLabel, topContainer, horLine
+from teacher.ui_parts import MediaPanel
+from common.capturing import Vidosik, ScreenCapture, AudioCapture
+from common.webrtc_client import WebRTCClient
 
 
 class MeetTeacher(QMainWindow):
@@ -19,9 +15,23 @@ class MeetTeacher(QMainWindow):
         self.ids = id
         asyncio.create_task(self.sio.emit("register_new_meet", self.ids))
 
-        self.prev_page = prev_page
         self.cam = Vidosik()
         self.scrn = ScreenCapture()
+        self.audio = AudioCapture()
+
+        self.webrtc = WebRTCClient(
+            sio=self.sio,
+            meet_id=self.ids["personal_id"],
+            personal_id=self.ids["personal_id"],
+            direction="sendrecv",
+            audio_track=self.audio,
+            camera_track=self.cam,
+            screen_track=self.scrn,
+        )
+        asyncio.create_task(self.webrtc.start())
+
+        self.prev_page = prev_page
+
         self.buildUI()
 
 
@@ -75,10 +85,47 @@ class MeetTeacher(QMainWindow):
                            'meet_id' : self.ids['personal_id'],
                            "role" : "Teacher"})
         self.cam.stop()
-        self.scr.stop()
+        self.scrn.stop()
 
-    # def resizeEvent(self, event):
-    #     super().resizeEvent(event)
-    #     # тут self.main вже має оновлену геометрію
-    #     self.size = self.main.size()
-    #     print(f"Current main size: {self.size.width()}×{self.size.height()}")
+    # async def start_webrtc(self):
+    #     print("1")
+    #     self.sio.on("webrtc_answer", self.webrtc_answer)
+    #     self.sio.on("webrtc_ice_candidate",self.webrtc_ice_candidate)
+    #     self.pc = pc = RTCPeerConnection()
+    #     print("2")
+    #
+    #     video_transceiver = pc.addTransceiver("video", direction="sendrecv")
+    #     screen_transceiver = pc.addTransceiver("video", direction="sendrecv")
+    #     # audio_transceiver = pc.addTransceiver("audio", direction="sendrecv")
+    #
+    #     video_transceiver.sender.replaceTrack(self.cam)
+    #     screen_transceiver.sender.replaceTrack(self.scrn)
+    #     # audio_transceiver.sender.replaceTrack(self.audio)
+    #
+    #     @pc.on("icecandidate")
+    #     async def on_ice(candidate):
+    #         if candidate:
+    #             candidate_data = {"candidate": candidate.candidate,
+    #                               "sdpMid": candidate.sdpMid,
+    #                               "sdpMLineIndex": candidate.sdpMLineIndex}
+    #
+    #             await self.sio.emit("webrtc_ice_candidate", {
+    #                 "meet_id": self.ids['personal_id'],
+    #                 "personal_id": self.ids['personal_id'],
+    #                 "candidate": candidate_data
+    #             })
+    #
+    #     offer = await pc.createOffer()
+    #     await pc.setLocalDescription(offer)
+    #     await self.sio.emit("webrtc_offer", {
+    #                         "meet_id" : self.ids['personal_id'],
+    #                         "personal_id" : self.ids['personal_id'],
+    #                         "offer" : pc.localDescription})
+    #
+    #
+    # async def webrtc_answer(self, data):
+    #     description = RTCSessionDescription(sdp=data["answer"].sdp, type=data["answer"].type)
+    #     await self.pc.setRemoteDescription(description)
+    #
+    # async def webrtc_ice_candidate(self, data):
+    #     await self.pc.addIceCandidate(data["candidate"])

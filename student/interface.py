@@ -2,7 +2,7 @@ import asyncio
 
 from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton
 from PyQt5.QtCore import QTimer
-from main_interface.elements.done_elements import *
+from common.elements.done_elements import *
 
 
 

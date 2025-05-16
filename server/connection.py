@@ -1,7 +1,10 @@
+import asyncio
 import time
 import secrets
-from aiortc import RTCPeerConnection
+from aiortc import RTCPeerConnection, RTCIceCandidate, RTCSessionDescription
 from aiortc.contrib.media import MediaRelay
+from flask import request
+
 
 # meet_code_bp = Blueprint('meet_code_bp', __name__)
 # @meet_code_bp.route('/gen_meet_code', methods=['POST'])
@@ -19,6 +22,7 @@ def connection_events(sio):
     # якщо обрати вчителем
     @sio.on('gen_personal_id')
     def gen_meet_code():
+        print('--- gen_personal_id')
         while True:
             personal_id = str(secrets.randbelow(10**2)).zfill(2)
             if personal_id not in occupied_ids:
@@ -26,10 +30,12 @@ def connection_events(sio):
                 break
         meet_password = str(secrets.randbelow(10**2)).zfill(2)
         ids: dict[str, str] = {'personal_id' : personal_id, 'meet_password' : meet_password}
+        print(ids)
         return ids
 
     @sio.on('register_new_meet')
     def register_new_meet(ids):
+        print('Registering new meet')
         owner_id = ids['personal_id']
         meet_password = ids['meet_password']
 
@@ -46,18 +52,6 @@ def connection_events(sio):
             else:
                 meetings[owner_id]["owner_active"] = True
 
-        # path = f'{DIR}code_{owner_id}.json'
-        # if not os.path.exists(path):
-        #     info =  { "owner_id": owner_id,
-        #               "owner_active" : True,
-        #               "meet_password" : meet_password,
-        #               "start_time": datetime.utcnow().isoformat(),
-        #               "participants": {} }
-        #     save_info(path, info)
-        # else:
-        #     info = load_info(path)
-        #     info["owner_active"] = True
-        #     save_info(path, info)
 
     @sio.on('join_meet')
     def join_meet(supposed_ids):
@@ -84,22 +78,37 @@ def connection_events(sio):
             return False
 
     @sio.on('disconnect_participant')
-    def disconnect_participant(actor):
-        meet_id = actor["meet_id"]
-        if actor["role"] == "Teacher":
+    def disconnect_participant(leaving_participant):
+        meet_id = leaving_participant["meet_id"]
+        personal_id = leaving_participant["personal_id"]
+        if leaving_participant["role"] == "Teacher":
             meetings[meet_id]["owner_active"] = False
 
         else:
             with lock:
                 path = meetings[meet_id]['path']
                 info = load_info(path)
-                info.pop(actor["personal_id"], None)
+                info.pop(personal_id, None)
                 save_info(path, info)
+
+        pcs = meetings[meet_id]['pcs']
+        pc = pcs.pop(personal_id, None)
+        if pc:
+            asyncio.create_task(pc.close())
+
         meetings[meet_id]["part_num_changed_time"] = time.time()
 
-    async def on_offer(data):
+    @sio.on('webrtc_offer')
+    def webrtc_offer(data):
+        sid = request.sid
+        sio.start_background_task(lambda: asyncio.run(offer_handler(sid, data)))
+
+    async def offer_handler(sid, data):
+        print(1)
+
         personal_id = data['personal_id']
         meet_id = data['meet_id']
+        offer = data["offer"]
         pcs = meetings[meet_id]['pcs']
 
         pc = RTCPeerConnection()
@@ -109,48 +118,48 @@ def connection_events(sio):
         async def on_track(track):
             relay_track = relay.subscribe(track)
 
-            for
+            for other_id, other_pc in pcs.items():
+                if other_id != personal_id:
+                    other_pc.addTrack(relay_track)
+
+        # приймаємо Offer
+        description = RTCSessionDescription(sdp=offer["sdp"], type=offer["type"])
+        await pc.setRemoteDescription(description)
+        # відповідаємо Answer
+        answer = await pc.createAnswer()
+
+        @pc.on("icecandidate")
+        async def on_icecandidate(candidate):
+            print('++')
+            if candidate:
+                candidate_data = {
+                    "candidate" : candidate.candidate,
+                    "sdpMid" : candidate.sdpMid,
+                    "sdpMLineIndex" : candidate.sdpMLineIndex}
+                await sio.emit("webrtc_ice_candidate", {"candidate" : candidate_data}, room=sid)
+
+        #після setLocalDescription вже починає збирати айс-кандидата
+        await pc.setLocalDescription(answer)
+        await sio.emit("webrtc_answer", {
+            "answer": {
+               "sdp": pc.localDescription.sdp,
+               "type": pc.localDescription.type}
+            },
+            room=sid)
+        print(5)
 
 
+    @sio.on('webrtc_ice_candidate')
+    async def webrtc_ice_candidate(data):
+        print('--')
+        personal_id = data['personal_id']
+        meet_id = data['meet_id']
+        pcs = meetings[meet_id]['pcs']
+        pc = pcs.get(personal_id)
+        if pc:
+            await pc.addIceCandidate(data["candidate"])
 
 def connection_management(sio):
     connection_events(sio)
     cleanup_func(sio)
 
-    # @sio.on('join_meet')
-    # def join_meet(supposed_ids):
-    #     meet_id = supposed_ids['meet_id']
-    #     supposed_password = supposed_ids['meet_password']
-    #     personal_id = supposed_ids['personal_id']
-    #     path = f'{DIR}code_{meet_id}.json'
-    #     if not os.path.exists(path):
-    #         return False
-    #
-    #     info = load_info(path)
-    #     real_password = info['meet_password']
-    #
-    #     # якщо паролі співпали, то додає
-    #     if real_password == supposed_password:
-    #         info["participants"][f"{personal_id}"] = {'emotions' : [],
-    #                                                   'camera' : False,
-    #                                                   'hand_raised': False}
-    #         save_info(path, info)
-    #         return True
-    #     else:
-    #         return False
-
-
-    # @sio.on('disconnect_participant')
-    # def disconnect_participant(actor):
-    #
-    #     if actor["role"] == "Teacher":
-    #         path = f"{DIR}code_{actor['personal_id']}.json"
-    #         info = load_info(path)
-    #         info["owner_active"] = False
-    #         save_info(path, info)
-    #
-    #     else:
-    #         path = f"{DIR}code_{actor['meet_id']}.json"
-    #         info = load_info(path)
-    #         info["participants"].pop(actor["personal_id"], None)
-    #         save_info(path, info)

@@ -14,7 +14,7 @@ def changeWindowButton(callback_func, width=60, height=60, text="Go", backButton
     btn = QPushButton()
 
     if backButton:
-        btn.setIcon(QIcon('main_interface/elements/backButton.png'))
+        btn.setIcon(QIcon('common/elements/backButton.png'))
         btn.setFlat(True) #щоб без заднього фону і рамок
 
     else:

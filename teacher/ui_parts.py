@@ -2,7 +2,7 @@ from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QVBoxLayout
 from PyQt5.QtCore import Qt, QTimer
 
-from main_interface.elements.done_elements import MediaButton
+from common.elements.done_elements import MediaButton
 
 class MediaPanel(QWidget):
     def __init__(self, cam, scrn):
