@@ -9,8 +9,7 @@ import requests
 import socketio
 import asyncio
 import time
-from main_interface.elements.done_elements import changeWindowButton
-from main_interface.capturing import Vidosik
+from common.elements.done_elements import changeWindowButton
 
 
 ####################### це шоб помилки виводились
@@ -71,6 +70,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.sio = socketio.AsyncClient()
+        if self.sio.connected:
+            self.sio.disconnect()
+        self.sio.connect(server_url)
 
         self.setGeometry(200, 300, 800, 600)
         self.stack = QStackedWidget()
@@ -89,6 +91,7 @@ class MainWindow(QMainWindow):
         await self.sio.emit('gen_personal_id', callback=self.personal_id_generated)
 
     def personal_id_generated(self, data):
+        ### personal_id: //, meet_password: //
         self.ids = data
 
     def clean_windows(self):
@@ -123,7 +126,7 @@ class MainWindow(QMainWindow):
     def switch_to_MeetStudent(self, meet_id, name):
         self.clean_windows()
         from student.interface import MeetStudent
-        self.pages['student'] = MeetStudent(self.switch_to_EnterCode, sio=self.sio, id=self.ids, meet_id=meet_id, name=name)
+        self.pages['student'] = MeetStudent(self.switch_to_EnterCode, sio=self.sio, ids=self.ids)
         self.stack.addWidget(self.pages['student'])
         self.stack.setCurrentWidget(self.pages['student'])
 
