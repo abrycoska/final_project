@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_socketio import SocketIO
-from server.connection import  connection_management
+from connection import  connection_management
 
 app = Flask(__name__)
 socketio = SocketIO(app,
