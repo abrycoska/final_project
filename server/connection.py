@@ -4,7 +4,7 @@ import secrets
 from aiortc import RTCPeerConnection, RTCIceCandidate, RTCSessionDescription, RTCConfiguration, RTCIceServer
 from aiortc.contrib.media import MediaRelay
 from flask import request
-from server.meet_management import *
+from meet_management import *
 
 relay = MediaRelay()
 
